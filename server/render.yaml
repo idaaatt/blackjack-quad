@@ -1,0 +1,13 @@
+# Render.com deployment config for Socket.io server
+services:
+  - type: web
+    name: blackjack-quad-server
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+

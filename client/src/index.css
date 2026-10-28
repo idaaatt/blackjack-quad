@@ -1,0 +1,186 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    background-color: #0a2b1c;
+    color: #f8f5ed;
+    min-height: 100dvh;
+  }
+
+  /* Focus visible — R-32: keyboard accessibility */
+  :focus-visible {
+    outline: 2px solid #c8a94e;
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* Remove default focus ring only when replaced with :focus-visible */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+@layer components {
+  /* Card face — ivory parchment feel */
+  .playing-card {
+    @apply bg-ivory-200 rounded-md shadow-card font-mono text-felt-900;
+    border: 1px solid #d0c8b0;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+  }
+
+  .playing-card:hover {
+    @apply shadow-card-hover;
+    transform: translateY(-2px);
+  }
+
+  /* Red suit cards */
+  .playing-card.red-suit {
+    color: #b91c1c;
+  }
+
+  /* Card back */
+  .playing-card-back {
+    @apply rounded-md shadow-card;
+    background: repeating-linear-gradient(
+      45deg,
+      #1a2a8a 0px,
+      #1a2a8a 4px,
+      #0e1a60 4px,
+      #0e1a60 8px
+    );
+    border: 3px solid #2a3a9a;
+  }
+
+  /* Action button — tactile gold accent */
+  .btn-action {
+    @apply font-ui font-semibold text-sm px-5 py-2.5 rounded;
+    @apply bg-felt-600 text-ivory-100 border border-felt-500;
+    @apply transition-all duration-150;
+    min-height: 44px; /* R-03: tap target */
+  }
+
+  .btn-action:hover:not(:disabled) {
+    @apply bg-felt-500 border-gold-500 text-gold-300;
+    transform: translateY(-1px);
+  }
+
+  .btn-action:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .btn-action:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+
+  /* Primary CTA — gold, reserved for key moments */
+  .btn-primary {
+    @apply font-ui font-semibold text-sm px-6 py-3 rounded;
+    @apply bg-gold-500 text-felt-900 border border-gold-400;
+    @apply transition-all duration-150;
+    min-height: 44px;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-gold-400;
+    box-shadow: 0 0 12px rgba(200, 169, 78, 0.4);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    @apply bg-gold-600;
+  }
+
+  .btn-primary:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+
+  /* Panel: dark wood border, subtle felt interior */
+  .panel {
+    @apply rounded-lg border border-wood-700 bg-felt-800;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  /* Seat label */
+  .seat-label {
+    @apply font-mono text-xs text-gold-500 uppercase tracking-widest;
+  }
+
+  /* Score badge */
+  .score-win {
+    @apply text-green-400 font-semibold font-mono text-sm;
+  }
+
+  .score-loss {
+    @apply text-red-400 font-semibold font-mono text-sm;
+  }
+
+  .score-push {
+    @apply text-gold-400 font-semibold font-mono text-sm;
+  }
+
+  /* Result overlay text */
+  .result-win {
+    @apply text-green-300 font-display font-bold;
+  }
+
+  .result-loss {
+    @apply text-red-400 font-display font-bold;
+  }
+
+  .result-push {
+    @apply text-gold-300 font-display font-bold;
+  }
+
+  .result-blackjack {
+    @apply text-yellow-200 font-display font-bold;
+  }
+
+  /* Turn indicator glow — real state: marks whose turn it is */
+  .active-turn-ring {
+    box-shadow: 0 0 0 2px #c8a94e, 0 0 16px rgba(200,169,78,0.3);
+  }
+}
+
+/* Felt table texture overlay */
+.felt-table {
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(26,99,71,0.3) 0%, transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%230d3d2e'/%3E%3Crect x='0' y='0' width='2' height='2' fill='%23113d2d' opacity='0.5'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23113d2d' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: auto, 4px 4px;
+}
+
+/* Scrollbar — dark felt theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a2b1c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #134d39;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #c8a94e;
+}

@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "name": "blackjack-quad",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "vite"
+}
+

@@ -1,0 +1,13 @@
+{
+  "name": "blackjack-quad",
+  "version": "1.0.0",
+  "description": "Blackjack Quad — 4-player real-time blackjack",
+  "private": true,
+  "scripts": {
+    "server": "node server/index.js",
+    "client": "npm run dev --prefix client",
+    "dev:server": "node --watch server/index.js",
+    "install:all": "npm install --prefix server && npm install --prefix client"
+  }
+}
+
