@@ -39,20 +39,15 @@ const corsOptions = {
   credentials: true,
 };
 
-const io = new Server(httpServer, {
+const io = new Server(server, {
   cors: {
-    origin: (origin, cb) => corsOptions.origin(origin, cb),
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-  // Allow both polling and websocket — polling as fallback for restrictive networks
-  transports: ['websocket', 'polling'],
-  pingTimeout: 30000,
-  pingInterval: 10000,
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
+// KODE SETELAH DIPERBAIKI:
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // preflight
 app.use(express.json());
 
 // REST: Create room
@@ -71,6 +66,7 @@ app.get('/api/rooms/:code', (req, res) => {
   if (!room) return res.status(404).json({ error: 'Room not found' });
   res.json({ room_code: room.room_code, status: room.status, player_count: room.seats.filter(s => s.is_occupied && !s.is_ai).length });
 });
+
 
 // Active turn timers map: roomCode -> timeoutRef
 const turnTimers = new Map();
