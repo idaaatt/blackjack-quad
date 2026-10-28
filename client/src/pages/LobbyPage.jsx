@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { socket } from '../socket';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+const rawUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+const SERVER_URL = rawUrl.replace(/\/+$/, '');
 
 function LobbyPage({ onJoined }) {
   const [mode, setMode] = useState('choose'); // 'choose' | 'create' | 'join'

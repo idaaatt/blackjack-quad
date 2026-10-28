@@ -20,35 +20,16 @@ const { handTotal, isBust } = require('./src/deck');
 const app = express();
 const httpServer = http.createServer(app);
 
-// CORS origins: allow all Vercel preview URLs + custom domain
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
-  : ['http://localhost:5173', 'http://localhost:4173'];
-
-const corsOptions = {
-  origin: (origin, cb) => {
-    // Allow requests with no origin (curl, Postman, server-to-server)
-    if (!origin) return cb(null, true);
-    // Allow any vercel.app subdomain + explicit list
-    if (origin.endsWith('.vercel.app') || ALLOWED_ORIGINS.includes(origin)) {
-      return cb(null, true);
-    }
-    cb(new Error(`CORS blocked: ${origin}`));
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  credentials: true,
-};
-
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
-
-// KODE SETELAH DIPERBAIKI:
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+  transports: ['websocket', 'polling'],
+});
 
 // REST: Create room
 app.post('/api/rooms', (req, res) => {
