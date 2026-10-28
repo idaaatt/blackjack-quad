@@ -44,9 +44,11 @@ function createEmptySeat(seatId) {
   };
 }
 
-function createRoom(creatorSocketId, creatorNickname) {
-  let code;
-  do { code = generateRoomCode(); } while (rooms.has(code));
+function createRoom(creatorSocketId, creatorNickname, customCode = null) {
+  let code = customCode ? customCode.toUpperCase().trim() : null;
+  if (!code || rooms.has(code)) {
+    do { code = generateRoomCode(); } while (rooms.has(code));
+  }
 
   const room = {
     room_code: code,

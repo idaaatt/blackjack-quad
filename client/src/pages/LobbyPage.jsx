@@ -3,11 +3,8 @@
 // R-27: loading, error, and empty states all handled.
 // R-23: no assets assumed; uses text placeholder for logo.
 
-import React, { useState, useEffect } from 'react';
-import { socket } from '../socket';
-
-const rawUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
-const SERVER_URL = rawUrl.replace(/\/+$/, '');
+import React, { useState, useEffect, useRef } from 'react';
+import { socket, SERVER_URL, setCustomServerUrl } from '../socket';
 
 function LobbyPage({ onJoined }) {
   const [mode, setMode] = useState('choose'); // 'choose' | 'create' | 'join'
@@ -15,6 +12,10 @@ function LobbyPage({ onJoined }) {
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [showConfig, setShowConfig] = useState(false);
+  const [newServerUrl, setNewServerUrl] = useState(SERVER_URL);
+  const timeoutRef = useRef(null);
 
   // If ?room= in URL, pre-fill join mode
   useEffect(() => {
@@ -27,44 +28,68 @@ function LobbyPage({ onJoined }) {
   }, []);
 
   useEffect(() => {
+    function onConnect() {
+      setIsConnected(true);
+      setError('');
+    }
+    function onDisconnect() {
+      setIsConnected(false);
+    }
+    function onConnectError(err) {
+      setIsConnected(false);
+      console.warn('Socket connection error:', err);
+    }
     function onError(data) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setError(data.message || 'Terjadi kesalahan.');
       setLoading(false);
     }
     function onJoinedEvent(data) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setLoading(false);
       onJoined(data);
     }
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
     socket.on('ERROR', onError);
     socket.on('JOINED', onJoinedEvent);
+
     return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
       socket.off('ERROR', onError);
       socket.off('JOINED', onJoinedEvent);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [onJoined]);
 
-  async function handleCreate(e) {
+  function startTimeoutWatcher(actionName) {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setLoading(false);
+      setError(
+        `Waktu koneksi habis saat ${actionName}. Server (${SERVER_URL}) tidak merespon. Pastikan backend aktif atau cek URL server di bawah.`
+      );
+    }, 9000);
+  }
+
+  function handleCreate(e) {
     e.preventDefault();
     const nick = nickname.trim();
     if (!nick) { setError('Masukkan nickname.'); return; }
     setError('');
     setLoading(true);
 
-    try {
-      const res = await fetch(`${SERVER_URL}/api/rooms`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname: nick }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Gagal membuat ruangan.'); setLoading(false); return; }
+    startTimeoutWatcher('membuat ruangan');
 
+    if (!socket.connected) {
       socket.connect();
-      socket.emit('JOIN_ROOM', { room_code: data.room_code, nickname: nick });
-    } catch {
-      setError('Tidak bisa terhubung ke server. Pastikan server berjalan.');
-      setLoading(false);
     }
+    // Langsung buat room via socket
+    socket.emit('JOIN_ROOM', { room_code: '', nickname: nick });
   }
 
   function handleJoin(e) {
@@ -76,16 +101,25 @@ function LobbyPage({ onJoined }) {
     setError('');
     setLoading(true);
 
-    socket.connect();
+    startTimeoutWatcher('masuk ke ruangan');
+
+    if (!socket.connected) {
+      socket.connect();
+    }
     socket.emit('JOIN_ROOM', { room_code: code, nickname: nick });
+  }
+
+  function handleSaveServer(e) {
+    e.preventDefault();
+    if (!newServerUrl.trim()) return;
+    setCustomServerUrl(newServerUrl.trim());
   }
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center felt-table p-4">
-      {/* Table surface backdrop */}
       <div className="w-full max-w-md">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-block border-2 border-gold-500 px-6 py-1 mb-4" aria-hidden="true">
             <span className="font-mono text-xs text-gold-500 tracking-widest uppercase">AntiGravity</span>
           </div>
@@ -95,6 +129,18 @@ function LobbyPage({ onJoined }) {
           <p className="text-felt-300 font-ui text-sm">
             4 pemain, real-time. Tanpa registrasi.
           </p>
+
+          {/* Connection status indicator */}
+          <div className="mt-2 flex items-center justify-center gap-2 text-xs font-mono">
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${
+                isConnected ? 'bg-green-400 shadow-[0_0_8px_#4ade80]' : 'bg-red-400'
+              }`}
+            />
+            <span className={isConnected ? 'text-green-300' : 'text-red-300'}>
+              {isConnected ? 'Server Terhubung' : 'Server Belum Terhubung'}
+            </span>
+          </div>
         </div>
 
         {/* Card panel */}
@@ -109,7 +155,12 @@ function LobbyPage({ onJoined }) {
               <NicknameInput value={nickname} onChange={setNickname} />
               {error && <ErrorMsg>{error}</ErrorMsg>}
               <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => { setMode('choose'); setError(''); }} className="btn-action flex-1">
+                <button
+                  type="button"
+                  onClick={() => { setMode('choose'); setError(''); }}
+                  className="btn-action flex-1"
+                  disabled={loading}
+                >
                   Kembali
                 </button>
                 <button type="submit" className="btn-primary flex-1" disabled={loading}>
@@ -140,7 +191,12 @@ function LobbyPage({ onJoined }) {
               </div>
               {error && <ErrorMsg>{error}</ErrorMsg>}
               <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => { setMode('choose'); setError(''); }} className="btn-action flex-1">
+                <button
+                  type="button"
+                  onClick={() => { setMode('choose'); setError(''); }}
+                  className="btn-action flex-1"
+                  disabled={loading}
+                >
                   Kembali
                 </button>
                 <button type="submit" className="btn-primary flex-1" disabled={loading}>
@@ -151,8 +207,49 @@ function LobbyPage({ onJoined }) {
           )}
         </div>
 
+        {/* Server settings configuration toggle */}
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => setShowConfig(!showConfig)}
+            className="text-xs font-mono text-felt-400 hover:text-gold-400 transition-colors underline"
+          >
+            {showConfig ? 'Sembunyikan Pengaturan Server' : '⚙️ Pengaturan Server Backend'}
+          </button>
+
+          {showConfig && (
+            <form onSubmit={handleSaveServer} className="mt-3 panel p-3 text-left">
+              <label className="text-xs font-mono text-felt-300 block mb-1">
+                URL Server Backend:
+              </label>
+              <input
+                type="url"
+                value={newServerUrl}
+                onChange={e => setNewServerUrl(e.target.value)}
+                placeholder="https://...loca.lt atau https://...onrender.com"
+                className="w-full bg-felt-900 border border-felt-600 rounded px-2.5 py-1.5 text-xs text-ivory-100 font-mono focus:border-gold-500 focus:outline-none mb-2"
+              />
+              <div className="flex justify-between items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem('BJ_SERVER_URL');
+                    window.location.reload();
+                  }}
+                  className="text-xs font-mono text-felt-400 hover:text-red-400"
+                >
+                  Reset Default
+                </button>
+                <button type="submit" className="btn-primary text-xs px-3 py-1">
+                  Simpan & Hubungkan
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
         {/* Footer rules note */}
-        <p className="text-center text-felt-500 text-xs mt-6 font-ui">
+        <p className="text-center text-felt-500 text-xs mt-4 font-ui">
           Aturan: HIT / STAND / SPLIT / SURRENDER. Tanpa Double Down.
         </p>
       </div>
@@ -201,7 +298,7 @@ function NicknameInput({ value, onChange }) {
 
 function ErrorMsg({ children }) {
   return (
-    <p role="alert" className="mt-2 text-red-400 text-xs font-ui">
+    <p role="alert" className="mt-2 text-red-400 text-xs font-ui leading-relaxed">
       {children}
     </p>
   );

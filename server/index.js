@@ -23,12 +23,12 @@ const httpServer = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
+// KODE YANG BENAR:
 const io = new Server(httpServer, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
-  transports: ['websocket', 'polling'],
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
 // REST: Create room
@@ -128,33 +128,37 @@ io.on('connection', (socket) => {
 
   // JOIN_ROOM
   socket.on('JOIN_ROOM', ({ room_code, nickname, seat_id }) => {
-    const code = room_code.toUpperCase().trim();
-    let room = getRoom(code);
+    console.log(`[JOIN_ROOM] code=${room_code}, nick=${nickname}, socket=${socket.id}`);
+    let code = (room_code || '').toUpperCase().trim();
+    let room = code ? getRoom(code) : null;
     let isCreator = false;
 
     if (!room) {
-      // Create room on first join
-      const result = createRoom(socket.id, nickname);
+      // Create room on first join using requested code (or random if not provided)
+      const result = createRoom(socket.id, nickname, code || null);
       room = result.room;
       isCreator = true;
+      console.log(`[ROOM_CREATED] Created room ${room.room_code}`);
     }
 
-    const result = joinRoom(code, socket.id, nickname, seat_id || null);
+    const result = joinRoom(room.room_code, socket.id, nickname, seat_id || null);
     if (result.error) {
+      console.warn(`[JOIN_ERROR] ${result.error}`);
       socket.emit('ERROR', { message: result.error });
       return;
     }
 
-    socket.join(code);
-    socket.data.room_code = code;
+    socket.join(room.room_code);
+    socket.data.room_code = room.room_code;
     socket.data.seat_id = result.seat.seat_id;
     socket.data.nickname = nickname;
 
     socket.emit('JOINED', {
       seat_id: result.seat.seat_id,
-      room_code: code,
+      room_code: room.room_code,
       is_creator: isCreator,
     });
+    console.log(`[JOINED_SUCCESS] ${nickname} joined seat ${result.seat.seat_id} in ${room.room_code}`);
 
     broadcastState(room);
 
