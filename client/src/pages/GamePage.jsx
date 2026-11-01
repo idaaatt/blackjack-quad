@@ -10,9 +10,9 @@ import Scorecard from '../components/Scorecard';
 import MatchNotes from '../components/MatchNotes';
 
 function GamePage({ joinData }) {
-  const { seat_id: mySeatId, room_code: roomCode } = joinData;
+  const { seat_id: mySeatId, room_code: roomCode, room_state: initialRoomState } = joinData;
 
-  const [roomState, setRoomState] = useState(null);
+  const [roomState, setRoomState] = useState(initialRoomState || null);
   const [aiTakeover, setAiTakeover] = useState(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
@@ -30,6 +30,7 @@ function GamePage({ joinData }) {
     }
     function onReconnect() {
       setConnectionError(false);
+      socket.emit('GET_STATE', { room_code: roomCode });
     }
     function onError(data) {
       console.warn('Server error:', data.message);
@@ -41,6 +42,9 @@ function GamePage({ joinData }) {
     socket.on('connect', onReconnect);
     socket.on('ERROR', onError);
 
+    // Minta data meja seketika saat halaman game terbuka
+    socket.emit('GET_STATE', { room_code: roomCode });
+
     return () => {
       socket.off('STATE_UPDATE', onStateUpdate);
       socket.off('AI_TAKEOVER', onAiTakeover);
@@ -48,7 +52,7 @@ function GamePage({ joinData }) {
       socket.off('connect', onReconnect);
       socket.off('ERROR', onError);
     };
-  }, []);
+  }, [roomCode]);
 
   const handleAction = useCallback((action) => {
     socket.emit('PLAYER_ACTION', { action });
@@ -83,8 +87,25 @@ function GamePage({ joinData }) {
 
   if (!roomState) {
     return (
-      <div className="min-h-dvh felt-table flex items-center justify-center">
-        <div className="text-gold-400 font-mono text-sm animate-pulse">Memuat meja...</div>
+      <div className="min-h-dvh felt-table flex items-center justify-center p-4">
+        <div className="panel p-6 text-center max-w-sm">
+          <div className="text-gold-400 font-mono text-sm animate-pulse mb-3">Memuat meja...</div>
+          <p className="text-felt-300 text-xs font-ui mb-3">
+            Menghubungkan ke ruangan {roomCode}...
+          </p>
+          <button
+            onClick={() => socket.emit('GET_STATE', { room_code: roomCode })}
+            className="btn-action text-xs px-4 py-2 w-full mb-2"
+          >
+            Muat Ulang Meja
+          </button>
+          <button
+            onClick={() => { window.location.href = '/'; }}
+            className="text-felt-400 text-xs font-mono underline hover:text-ivory-200 mt-2 block w-full text-center"
+          >
+            Kembali ke Menu
+          </button>
+        </div>
       </div>
     );
   }

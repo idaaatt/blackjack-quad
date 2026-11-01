@@ -156,15 +156,18 @@ io.on('connection', (socket) => {
     socket.data.seat_id = result.seat.seat_id;
     socket.data.nickname = nickname;
 
+    const safeState = getSafeRoomState(room);
+
     socket.emit('JOINED', {
       seat_id: result.seat.seat_id,
       room_code: room.room_code,
       is_creator: isCreator,
+      room_state: safeState,
     });
     console.log(`[JOINED_SUCCESS] ${nickname} joined seat ${result.seat.seat_id} in ${room.room_code}`);
 
     // Kirim data meja seketika ke socket pemain baru agar tidak menunggu broadcast
-    socket.emit('STATE_UPDATE', getSafeRoomState(room));
+    socket.emit('STATE_UPDATE', safeState);
 
     broadcastState(room);
 
@@ -184,6 +187,16 @@ io.on('connection', (socket) => {
       autoFillTimers.set(code, t);
     }
     */
+  });
+
+  // GET_STATE (Permintaan data meja dari client saat mount / reconnect)
+  socket.on('GET_STATE', (payload) => {
+    const code = (payload?.room_code || socket.data.room_code || '').toUpperCase().trim();
+    if (!code) return;
+    const room = getRoom(code);
+    if (room) {
+      socket.emit('STATE_UPDATE', getSafeRoomState(room));
+    }
   });
 
   // CLAIM_DEALER
