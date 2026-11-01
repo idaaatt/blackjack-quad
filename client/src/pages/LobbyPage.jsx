@@ -76,10 +76,13 @@ function LobbyPage({ onJoined }) {
     }, 9000);
   }
 
-  function handleCreate(e) {
-    e.preventDefault();
+  const handleCreateRoom = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     const nick = nickname.trim();
-    if (!nick) { setError('Masukkan nickname.'); return; }
+    if (!nick) {
+      setError('Masukkan nickname.');
+      return;
+    }
     setError('');
     setLoading(true);
 
@@ -88,12 +91,21 @@ function LobbyPage({ onJoined }) {
     if (!socket.connected) {
       socket.connect();
     }
-    // Langsung buat room via socket
-    socket.emit('JOIN_ROOM', { room_code: '', nickname: nick });
-  }
 
-  function handleJoin(e) {
-    e.preventDefault();
+    // 1. Buat kode ruangan acak 4 huruf di HP (frontend)
+    const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+    // 2. Langsung kirim perintah buat & masuk ruangan via Socket
+    socket.emit('JOIN_ROOM', {
+      room_code: randomCode,
+      nickname: nick,
+    });
+  };
+
+  const handleCreate = handleCreateRoom;
+
+  const handleJoin = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     const nick = nickname.trim();
     const code = roomCode.trim().toUpperCase();
     if (!nick) { setError('Masukkan nickname.'); return; }
@@ -107,7 +119,7 @@ function LobbyPage({ onJoined }) {
       socket.connect();
     }
     socket.emit('JOIN_ROOM', { room_code: code, nickname: nick });
-  }
+  };
 
   function handleSaveServer(e) {
     e.preventDefault();

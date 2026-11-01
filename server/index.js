@@ -128,8 +128,11 @@ io.on('connection', (socket) => {
 
   // JOIN_ROOM
   socket.on('JOIN_ROOM', ({ room_code, nickname, seat_id }) => {
-    console.log(`[JOIN_ROOM] code=${room_code}, nick=${nickname}, socket=${socket.id}`);
+    console.log(`[JOIN_ROOM] raw_code=${room_code}, nick=${nickname}, socket=${socket.id}`);
     let code = (room_code || '').toUpperCase().trim();
+    if (code && !code.startsWith('ROOM-') && code.length <= 6) {
+      code = 'ROOM-' + code;
+    }
     let room = code ? getRoom(code) : null;
     let isCreator = false;
 
