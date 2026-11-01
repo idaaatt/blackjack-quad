@@ -163,6 +163,9 @@ io.on('connection', (socket) => {
     });
     console.log(`[JOINED_SUCCESS] ${nickname} joined seat ${result.seat.seat_id} in ${room.room_code}`);
 
+    // Kirim data meja seketika ke socket pemain baru agar tidak menunggu broadcast
+    socket.emit('STATE_UPDATE', getSafeRoomState(room));
+
     broadcastState(room);
 
     // Auto-fill dimatikan saat di lobby agar kursi tidak terkunci.
