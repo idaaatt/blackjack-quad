@@ -165,7 +165,9 @@ io.on('connection', (socket) => {
 
     broadcastState(room);
 
-    // Start auto-fill timer if room not full
+    // Auto-fill dimatikan saat di lobby agar kursi tidak terkunci.
+    // AI otomatis mengisi sisa kursi saat host mengklik "Mulai Ronde".
+    /*
     const humanCount = room.seats.filter(s => s.is_occupied && !s.is_ai).length;
     if (humanCount < 4 && !autoFillTimers.has(code)) {
       const t = setTimeout(() => {
@@ -178,6 +180,7 @@ io.on('connection', (socket) => {
       }, 10000);
       autoFillTimers.set(code, t);
     }
+    */
   });
 
   // CLAIM_DEALER

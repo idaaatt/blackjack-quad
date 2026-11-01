@@ -86,18 +86,22 @@ function joinRoom(code, socketId, nickname, requestedSeat) {
   const room = getRoom(code);
   if (!room) return { error: 'Room not found' };
 
-  const emptySeat = requestedSeat
-    ? room.seats.find(s => s.seat_id === requestedSeat && !s.is_occupied)
-    : room.seats.find(s => !s.is_occupied && !s.is_ai);
+  // Prioritaskan kursi kosong; jika tidak ada, ambil kursi yang ditempati AI
+  let targetSeat = null;
+  if (requestedSeat) {
+    targetSeat = room.seats.find(s => s.seat_id === requestedSeat && (!s.is_occupied || s.is_ai));
+  } else {
+    targetSeat = room.seats.find(s => !s.is_occupied) || room.seats.find(s => s.is_ai);
+  }
 
-  if (!emptySeat) return { error: 'No available seat' };
+  if (!targetSeat) return { error: 'Ruangan sudah penuh oleh pemain asli!' };
 
-  emptySeat.player_name = nickname;
-  emptySeat.socket_id = socketId;
-  emptySeat.is_occupied = true;
-  emptySeat.is_ai = false;
+  targetSeat.player_name = nickname;
+  targetSeat.socket_id = socketId;
+  targetSeat.is_occupied = true;
+  targetSeat.is_ai = false;
 
-  return { seat: emptySeat, room };
+  return { seat: targetSeat, room };
 }
 
 function fillAiSeats(room) {
